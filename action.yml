@@ -1,0 +1,44 @@
+name: 'ghas-free-pack'
+description: >-
+  Free security scanning for Shell/Bash, Dockerfiles, Terraform HCL and PHP —
+  the exact file types GitHub gated behind paid Advanced Security (AI security
+  detections, July 2026). ShellCheck + Hadolint + tfsec + PHPStan, unified
+  SARIF output and a PR comment summary.
+author: 'ghas-free-pack contributors'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  enable-shellcheck:
+    description: 'Scan .sh / .bash files with ShellCheck'
+    required: false
+    default: 'true'
+  enable-hadolint:
+    description: 'Scan Dockerfile* files with Hadolint'
+    required: false
+    default: 'true'
+  enable-tfsec:
+    description: 'Scan Terraform (.tf) files with tfsec'
+    required: false
+    default: 'true'
+  enable-phpstan:
+    description: 'Scan .php files with PHPStan (off by default: many PHP projects need a tuned phpstan.neon)'
+    required: false
+    default: 'false'
+  fail-on-warning:
+    description: 'Fail the check when warnings are found (errors always fail the check)'
+    required: false
+    default: 'false'
+  phpstan-level:
+    description: 'PHPStan rule level 0-9 (used only when no phpstan.neon exists in the repo)'
+    required: false
+    default: '5'
+  github-token:
+    description: 'Token used to post the PR comment and upload SARIF (use the automatic github.token)'
+    required: true
+    default: ${{ github.token }}
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'

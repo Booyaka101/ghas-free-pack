@@ -1,0 +1,28 @@
+# Copy to .github/workflows/security.yml in your repository.
+name: Security scan (free)
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write     # PR summary comment
+  security-events: write   # SARIF upload to the Security tab (public repos)
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ghas-free-pack scan
+        uses: YOUR_GITHUB_USER/ghas-free-pack@v1
+        with:
+          enable-shellcheck: 'true'
+          enable-hadolint: 'true'
+          enable-tfsec: 'true'
+          enable-phpstan: 'false'   # opt-in: PHP projects usually want a tuned phpstan.neon
+          fail-on-warning: 'false'
+          github-token: ${{ github.token }}
