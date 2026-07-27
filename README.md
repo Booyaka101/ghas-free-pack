@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: YOUR_GITHUB_USER/ghas-free-pack@v1
+      - uses: Booyaka101/ghas-free-pack@v1
         with:
           github-token: ${{ github.token }}
 ```

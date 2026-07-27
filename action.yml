@@ -4,7 +4,7 @@ description: >-
   the exact file types GitHub gated behind paid Advanced Security (AI security
   detections, July 2026). ShellCheck + Hadolint + tfsec + PHPStan, unified
   SARIF output and a PR comment summary.
-author: 'ghas-free-pack contributors'
+author: 'Booyaka101'
 branding:
   icon: 'shield'
   color: 'green'

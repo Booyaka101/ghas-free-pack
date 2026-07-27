@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@v7
 
       - name: ghas-free-pack scan
-        uses: YOUR_GITHUB_USER/ghas-free-pack@v1
+        uses: Booyaka101/ghas-free-pack@v1
         with:
           enable-shellcheck: 'true'
           enable-hadolint: 'true'
