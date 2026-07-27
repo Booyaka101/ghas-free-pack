@@ -1,9 +1,6 @@
 name: 'ghas-free-pack'
-description: >-
-  Free security scanning for Shell/Bash, Dockerfiles, Terraform HCL and PHP —
-  the exact file types GitHub gated behind paid Advanced Security (AI security
-  detections, July 2026). ShellCheck + Hadolint + tfsec + PHPStan, unified
-  SARIF output and a PR comment summary.
+# Marketplace rejects a description of 125 characters or more.
+description: 'Free scanning for Shell, Dockerfiles, Terraform and PHP: ShellCheck, Hadolint, tfsec, PHPStan into one SARIF.'
 author: 'Booyaka101'
 branding:
   icon: 'shield'
