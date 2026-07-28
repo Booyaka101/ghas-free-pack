@@ -38,4 +38,11 @@ inputs:
 
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  # Prebuilt on GHCR rather than 'Dockerfile'. Building here meant every
+  # consuming workflow rebuilt the image from ubuntu:22.04 in the runner's
+  # pre-step — slow, and it put each consumer behind Docker Hub's anonymous
+  # pull limits (a Guards run died on "DeadlineExceeded: ubuntu:22.04" after
+  # three retries). The pre-step runs before any step, so continue-on-error
+  # cannot shield a job from it. Published by .github/workflows/publish-image.yml
+  # on every tag push; :v1 tracks the latest v1.x.
+  image: 'docker://ghcr.io/booyaka101/ghas-free-pack:v1'
