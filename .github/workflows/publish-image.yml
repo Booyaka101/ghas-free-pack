@@ -1,0 +1,56 @@
+name: publish-image
+
+# Builds the action image once and pushes it to GHCR, so consumers pull a
+# prebuilt image instead of building it on every run.
+#
+# Why: with `image: 'Dockerfile'` every consuming workflow rebuilt this image
+# from ubuntu:22.04 in the runner's pre-step. That is slow, and it made every
+# consumer depend on Docker Hub's anonymous pull limits — pnpm11-ci-guard's
+# Guards run went red on 2026-07-28 with "DeadlineExceeded: ubuntu:22.04" after
+# three retries. The pre-step runs before any of our steps, so continue-on-error
+# cannot shield a job from it. Pulling a prebuilt image removes both problems.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive tags
+        id: tags
+        run: |
+          # A tag push gives the exact version; a manual run publishes :edge only.
+          ref="${GITHUB_REF#refs/tags/}"
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ghas-free-pack"
+          if [ "${GITHUB_REF}" != "${ref}" ]; then
+            major="${ref%%.*}"                       # v1.0.0 -> v1
+            echo "tags=${image}:${ref},${image}:${major},${image}:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${image}:edge" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          # Links the package to this repo so it inherits repo visibility and
+          # shows the source on the GHCR page.
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
