@@ -1,0 +1,93 @@
+name: CI
+
+# This repo had no CI at all — its only workflow was tag-triggered publish, so
+# nothing verified the action on a push and it was the one repo the guard ledger
+# could not see. The end-to-end harness already existed (test/run-local.ps1);
+# it just needed a Linux runner to live on.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Our own tool. Locks the runner image's tool versions and diffs them when
+      # GitHub bumps the image — including when a floating label like
+      # ubuntu-latest silently re-points. Report-only; no fail-on yet.
+      - name: Runner image drift
+        uses: Booyaka101/runner-drift@v1
+        with:
+          # this repo builds a Docker image and has no Node toolchain of its own,
+          # so tool detection finds nothing to watch — name them explicitly
+          tools: docker,git
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the harness deps (ajv, for SARIF schema validation)
+        working-directory: test
+        run: npm ci || npm install
+
+      - name: Build the action image
+        run: docker build -t ghas-free-pack:local .
+
+      - name: Start the mock GitHub API
+        run: |
+          node test/mock-github.js &
+          for i in $(seq 1 20); do
+            curl -sf http://127.0.0.1:8899/ >/dev/null 2>&1 && break
+            sleep 0.5
+          done
+
+      # Runs the real action against test/fixtures, which deliberately contain a
+      # vulnerable .sh, .tf, .php and Dockerfile — so this is also the tool
+      # scanning exactly the file types it exists to cover.
+      - name: Run the action against the fixtures
+        id: run
+        run: |
+          mkdir -p test/out
+          set +e
+          docker run --rm --network host \
+            -v "$PWD/test/fixtures:/github/workspace" \
+            -v "$PWD/test/event.json:/github/event.json:ro" \
+            -v "$PWD/test/out:/artifacts" \
+            -e GITHUB_WORKSPACE=/github/workspace \
+            -e GITHUB_REPOSITORY=octo-demo/fixture-repo \
+            -e GITHUB_EVENT_NAME=pull_request \
+            -e GITHUB_EVENT_PATH=/github/event.json \
+            -e GITHUB_SHA=0123456789abcdef0123456789abcdef01234567 \
+            -e GITHUB_REF=refs/pull/1/merge \
+            -e GITHUB_API_URL=http://127.0.0.1:8899 \
+            -e GITHUB_STEP_SUMMARY=/artifacts/step-summary.md \
+            -e "INPUT_GITHUB-TOKEN=local-test-token" \
+            -e "INPUT_ENABLE-PHPSTAN=true" \
+            -e GFP_ARTIFACT_DIR=/artifacts \
+            ghas-free-pack:local
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+          set -e
+
+      # exit 1 is the PASS here: the fixtures are deliberately vulnerable, so an
+      # action that exits 0 has stopped detecting.
+      - name: Acceptance checks
+        run: node test/assert.js "${{ steps.run.outputs.exit }}"
+
+      - name: SARIF conforms to the 2.1.0 schema
+        run: node test/validate-sarif.js test/out/results.sarif
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghas-free-pack-output
+          path: test/out/
+          if-no-files-found: ignore

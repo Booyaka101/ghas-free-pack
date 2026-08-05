@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "label": "ubuntu-24.04",
+  "imageOS": "ubuntu24",
+  "imageVersion": "20260720.247.2",
+  "tools": {
+    "Docker Client": {
+      "versions": [
+        "28.0.4"
+      ],
+      "source": "manifest"
+    },
+    "Git": {
+      "versions": [
+        "2.54.0"
+      ],
+      "source": "manifest"
+    }
+  },
+  "updatedAt": "2026-08-05T05:20:30.222Z"
+}

@@ -1,0 +1,45 @@
+name: Guards
+
+# Our own shipped tools, run against this repo — including this repo's own
+# action, pointed at its own Dockerfile and entrypoint.sh. A scanner that has
+# never been run on its own source is an untested scanner.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The only lockfile here belongs to the test harness, not the repo root —
+      # the action itself is a Docker image with no Node dependencies.
+      - name: Install-script audit
+        run: npx --yes npm-script-lens@latest audit --path ./test
+
+      # Version cooldown: npm worms are typically identified within hours, so
+      # refuse to be among the first to install a brand-new version.
+      - name: Dependency cooldown
+        # report-only until 2026-08-13; then this line goes and it becomes a gate
+        continue-on-error: true
+        run: npx --yes npm-script-lens@latest audit --path ./test --cooldown
+
+      # Dogfood: scan our OWN Dockerfile, entrypoint.sh and terraform/php
+      # fixtures with the very action this repo publishes.
+      - name: Free GHAS-equivalent scan (self)
+        continue-on-error: true
+        uses: ./
+        with:
+          github-token: ${{ github.token }}
