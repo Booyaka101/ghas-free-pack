@@ -82,10 +82,6 @@ npm install          # ajv, for SARIF schema validation
 
 This builds the image, runs it against `test/fixtures/` (deliberately vulnerable Shell/Dockerfile/Terraform/PHP files) with a **mocked GitHub API** (`test/mock-github.js`), then `test/assert.js` verifies the acceptance criteria: hadolint `DL3002`, shellcheck `SC2163`, a tfsec HIGH/CRITICAL open-ingress finding, SARIF that validates against the official 2.1.0 JSON schema, and a posted PR comment containing the summary table. Artifacts land in `test/out/`.
 
-## Distribution
-
-**Best first step:** push this repo to GitHub as a public repository named `ghas-free-pack`, tag `v1`, create a release, and tick **"Publish this Action to the GitHub Actions Marketplace"** (category: *Security*). The launch story writes itself — post to r/devops / Hacker News the week GHAS-gated AI detections hit public preview: *"GitHub now charges for Shell/Docker/Terraform/PHP scanning — here's the same coverage for free in one action."*
-
 ## License
 
 MIT for this action's own code (see `LICENSE`). The scanners are installed at image build from their official channels and keep their own licenses.
