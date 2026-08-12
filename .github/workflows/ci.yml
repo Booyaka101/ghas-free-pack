@@ -26,6 +26,7 @@ jobs:
       - name: Runner image drift
         uses: Booyaka101/runner-drift@v1
         with:
+          fail-on-retirement: 60
           # this repo builds a Docker image and has no Node toolchain of its own,
           # so tool detection finds nothing to watch — name them explicitly
           tools: docker,git
