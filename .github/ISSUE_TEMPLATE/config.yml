@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: GitHub code scanning documentation
+    url: https://docs.github.com/code-security/code-scanning
+    about: How SARIF upload, the Security tab and alert dismissal work.
+  - name: GitHub Advanced Security coverage
+    url: https://github.blog/security/application-security/github-expands-application-security-coverage-with-ai-powered-detections/
+    about: What the paid tier covers, which is the gap this pack fills.
+  - name: Security issue
+    url: https://github.com/Booyaka101/ghas-free-pack/security/advisories/new
+    about: Please report vulnerabilities privately, not as a public issue.
