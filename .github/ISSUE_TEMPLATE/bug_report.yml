@@ -1,0 +1,45 @@
+name: Bug report
+description: Something didn't work the way it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, and what came back.
+      placeholder: |
+        - uses: Booyaka101/ghas-free-pack@v1
+          with:
+            ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Which ref you pinned
+      description: The `@v1` / `@sha` you have in `uses:`.
+    validations:
+      required: true
+
+  - type: input
+    id: runtime
+    attributes:
+      label: Runner
+      description: The `runs-on:` value, and a link to the failing run if the repo is public.
+      placeholder: ubuntu-24.04
+    validations:
+      required: true
+
+  - type: textarea
+    id: finding
+    attributes:
+      label: The finding, or the file it should have flagged
+      description: For a false positive, the rule and the line it fired on. For a miss, the file and what you expected caught.
