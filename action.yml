@@ -1,6 +1,6 @@
 name: 'ghas-free-pack'
 # Marketplace rejects a description of 125 characters or more.
-description: 'Free scanning for Shell, Dockerfiles, Terraform and PHP: ShellCheck, Hadolint, tfsec, PHPStan into one SARIF.'
+description: 'Free scanning for Shell, Dockerfiles, Terraform and PHP: ShellCheck, Hadolint, Trivy, PHPStan into one SARIF.'
 author: 'Booyaka101'
 branding:
   icon: 'shield'
@@ -15,10 +15,13 @@ inputs:
     description: 'Scan Dockerfile* files with Hadolint'
     required: false
     default: 'true'
-  enable-tfsec:
-    description: 'Scan Terraform (.tf) files with tfsec'
+  enable-trivy:
+    description: 'Scan Terraform (.tf) files with Trivy'
     required: false
     default: 'true'
+  enable-tfsec:
+    description: 'Deprecated alias for enable-trivy (tfsec was replaced by Trivy in 1.1.0)'
+    required: false
   enable-phpstan:
     description: 'Scan .php files with PHPStan (off by default: many PHP projects need a tuned phpstan.neon)'
     required: false

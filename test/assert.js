@@ -28,14 +28,23 @@ const hd = readJson('hd.json');
 check('hadolint produced JSON output', Array.isArray(hd), hd ? hd.length + ' findings' : 'missing');
 check('DL3002 detected in fixture Dockerfile', Array.isArray(hd) && hd.some(f => f.code === 'DL3002'));
 
-// (3) tfsec: 0.0.0.0/0 ingress triggers HIGH (or CRITICAL) severity
-const tf = readJson('tf.json');
-const tfResults = tf && Array.isArray(tf.results) ? tf.results : [];
-const highIngress = tfResults.filter(r =>
-  /HIGH|CRITICAL/i.test(String(r.severity)) && /ingress/i.test(String(r.rule_id) + String(r.long_id)));
-check('tfsec produced JSON output', tfResults.length > 0, tfResults.length + ' findings');
-check('open 0.0.0.0/0 ingress flagged HIGH/CRITICAL', highIngress.length > 0,
-  highIngress.length ? highIngress[0].long_id + '=' + highIngress[0].severity : 'none');
+// (3) Trivy: the 0.0.0.0/0 SSH ingress is AWS-0107 at HIGH (or CRITICAL)
+const trivyFindings = report => report && Array.isArray(report.Results) ? report.Results.flatMap(r =>
+  (r.Misconfigurations || []).map(m => Object.assign({ Target: r.Target }, m))) : [];
+const misconfigs = trivyFindings(readJson('tv.json'));
+const ingress = misconfigs.find(m => m.ID === 'AWS-0107' && m.Status === 'FAIL');
+check('trivy produced JSON output', misconfigs.length > 0, misconfigs.length + ' findings');
+check('open 0.0.0.0/0 ingress flagged HIGH/CRITICAL as AWS-0107',
+  !!ingress && /^(HIGH|CRITICAL)$/.test(ingress.Severity), ingress ? ingress.ID + '=' + ingress.Severity : 'none');
+
+// A Trivy or checks-bundle bump that changes what the fixture yields should be
+// a deliberate re-record of fixtures/trivy.json, not a silent drift.
+const signature = list => list.map(m => [m.Target, m.ID, m.Severity, m.CauseMetadata && m.CauseMetadata.StartLine].join(':')).sort();
+const expected = signature(trivyFindings(
+  JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'trivy.json'), 'utf8'))));
+const actual = signature(misconfigs);
+check('trivy findings match recorded fixtures/trivy.json', JSON.stringify(actual) === JSON.stringify(expected),
+  actual.length + ' vs ' + expected.length + ' recorded');
 
 // phpstan: type errors detected
 const php = readJson('php.json');
@@ -46,8 +55,13 @@ check('phpstan produced JSON output with errors', !!(php && php.totals && (php.t
 const sarif = readJson('results.sarif');
 check('results.sarif written', !!sarif);
 const toolNames = sarif ? sarif.runs.map(r => r.tool.driver.name).sort() : [];
-check('SARIF has runs for all 4 tools', toolNames.length === 4, toolNames.join(', '));
+check('SARIF has runs for all 4 tools', toolNames.join() === 'Hadolint,PHPStan,ShellCheck,Trivy', toolNames.join(', '));
 if (sarif) {
+  const trivyRun = sarif.runs.find(r => r.tool.driver.name === 'Trivy');
+  const sarifIngress = trivyRun && trivyRun.results.find(r => r.ruleId === 'AWS-0107');
+  check('AWS-0107 is an error-level SARIF result', !!sarifIngress && sarifIngress.level === 'error',
+    sarifIngress ? sarifIngress.level : 'missing');
+
   const schema = JSON.parse(fs.readFileSync(path.join(__dirname, 'sarif-schema-2.1.0.json'), 'utf8'));
   const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });
   const validate = ajv.compile(schema);

@@ -1,7 +1,7 @@
 // comment.js — turn /tmp/results.sarif into a Markdown summary, write it to the
 // job step summary, post/update a PR comment, and best-effort upload the SARIF
 // to GitHub code scanning (works on public repos; private repos need GHAS).
-// Runs on Node 12 (Ubuntu 22.04 apt nodejs) — no optional chaining, no fetch.
+// Runs on the image's apt nodejs (Node 22 on Ubuntu 26.04).
 'use strict';
 
 const fs = require('fs');
@@ -56,7 +56,7 @@ function mdEscape(s) {
 }
 
 function buildMarkdown(sarif) {
-  const lines = [MARKER, '## \u{1F6E1}️ ghas-free-pack — security scan', ''];
+  const lines = [MARKER, '## \u{1F6E1}️ ghas-free-pack security scan', ''];
   let totals = { error: 0, warning: 0, note: 0, all: 0 };
 
   sarif.runs.forEach(function (run) {
@@ -69,7 +69,7 @@ function buildMarkdown(sarif) {
   if (totals.all === 0) {
     lines.push('✅ **No issues found** in Shell/Bash, Dockerfile, Terraform or PHP files.');
   } else {
-    lines.push('**' + totals.all + ' finding(s)** — ' +
+    lines.push('**' + totals.all + ' finding(s):** ' +
       EMOJI.error + ' ' + totals.error + ' error(s) · ' +
       EMOJI.warning + ' ' + totals.warning + ' warning(s) · ' +
       EMOJI.note + ' ' + totals.note + ' note(s)');
@@ -79,7 +79,7 @@ function buildMarkdown(sarif) {
       const tool = run.tool.driver.name;
       const results = run.results;
       if (!results.length) {
-        lines.push('### ' + tool + ' — ✅ clean');
+        lines.push('### ' + tool + ': ✅ clean');
         lines.push('');
         return;
       }
@@ -87,7 +87,7 @@ function buildMarkdown(sarif) {
       (run.tool.driver.rules || []).forEach(function (rule) {
         if (rule.helpUri) helpUris[rule.id] = rule.helpUri;
       });
-      lines.push('### ' + tool + ' — ' + results.length + ' finding(s)');
+      lines.push('### ' + tool + ': ' + results.length + ' finding(s)');
       lines.push('');
       lines.push('| | Rule | File | Line | Message |');
       lines.push('|---|------|------|-----:|---------|');
@@ -109,9 +109,9 @@ function buildMarkdown(sarif) {
   }
 
   lines.push('---');
-  lines.push('_Free scanning for **Shell/Bash, Dockerfiles, Terraform HCL and PHP** — the file types GitHub’s' +
+  lines.push('_Free scanning for **Shell/Bash, Dockerfiles, Terraform HCL and PHP**, the file types GitHub’s' +
     ' AI security detections only cover with paid Advanced Security ·' +
-    ' powered by ShellCheck, Hadolint, tfsec and PHPStan._');
+    ' powered by ShellCheck, Hadolint, Trivy and PHPStan._');
   return lines.join('\n');
 }
 

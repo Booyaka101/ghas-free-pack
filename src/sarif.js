@@ -1,7 +1,7 @@
-// sarif.js — merge raw scanner output (/tmp/sc.json, /tmp/hd.json, /tmp/tf.json,
+// sarif.js — merge raw scanner output (/tmp/sc.json, /tmp/hd.json, /tmp/tv.json,
 // /tmp/php.json) into a single SARIF 2.1.0 file at /tmp/results.sarif, plus
 // /tmp/counts.json used by entrypoint.sh for the exit code.
-// Runs on Node 12 (Ubuntu 22.04 apt nodejs) — no optional chaining, no fetch.
+// Runs on the image's apt nodejs (Node 22 on Ubuntu 26.04).
 'use strict';
 
 const fs = require('fs');
@@ -36,7 +36,7 @@ function scLevel(level) {
   if (level === 'warning') return 'warning';
   return 'note'; // info, style
 }
-function tfsecLevel(severity) {
+function severityLevel(severity) {
   const s = String(severity || '').toUpperCase();
   if (s === 'CRITICAL' || s === 'HIGH') return 'error';
   if (s === 'MEDIUM') return 'warning';
@@ -120,24 +120,33 @@ if (hd && Array.isArray(hd)) {
   tally('Hadolint', results);
 }
 
-// --------------------------------------------------------------------- tfsec
-const tf = readJson('/tmp/tf.json');
-if (tf && Array.isArray(tf.results)) {
+// --------------------------------------------------------------------- trivy
+const tv = readJson('/tmp/tv.json');
+if (tv && Array.isArray(tv.Results)) {
   const helpUris = {};
-  const results = tf.results.filter(function (f) {
-    return String(f.status) !== '1'; // 0/undefined = failed check; 1 = passed
-  }).map(function (f) {
-    const loc = f.location || {};
-    const msg = (f.rule_description || f.description || f.rule_id) +
-      (f.severity ? ' [' + f.severity + ']' : '') +
-      (f.resolution ? ' Resolution: ' + f.resolution : '');
-    if (Array.isArray(f.links) && f.links.length) helpUris[f.rule_id] = f.links[0];
-    return makeResult(f.rule_id, tfsecLevel(f.severity), msg, loc.filename, loc.start_line);
+  const results = [];
+  tv.Results.forEach(function (target) {
+    // A finding inside a downloaded module has a synthetic Target
+    // (<source>/.terraform/modules/...) that is not a repo file. Its last
+    // occurrence is the module call in the repo's own code, so report it there.
+    const inRepo = fs.existsSync(path.join(WORKSPACE, target.Target));
+    (target.Misconfigurations || []).forEach(function (m) {
+      if (m.Status !== 'FAIL') return;
+      const cause = m.CauseMetadata || {};
+      const call = inRepo ? null : (cause.Occurrences || []).slice(-1)[0];
+      const msg = (m.Message || m.Title || m.ID) + ' [' + m.Severity + ']' +
+        (m.Resolution ? ' Resolution: ' + m.Resolution : '') +
+        (call ? ' (in ' + target.Target + ' line ' + cause.StartLine + ')' : '');
+      if (m.PrimaryURL) helpUris[m.ID] = m.PrimaryURL;
+      const uri = call ? call.Filename : target.Target;
+      const line = call ? (call.Location || {}).StartLine : cause.StartLine;
+      results.push(makeResult(m.ID, severityLevel(m.Severity), msg, uri, line));
+    });
   });
-  runs.push(makeRun('tfsec', 'https://github.com/aquasecurity/tfsec', results, function (id) {
-    return helpUris[id] || 'https://avd.aquasec.com/misconfig/' + id;
+  runs.push(makeRun('Trivy', 'https://trivy.dev/', results, function (id) {
+    return helpUris[id] || 'https://avd.aquasec.com/misconfig/' + id.toLowerCase();
   }));
-  tally('tfsec', results);
+  tally('Trivy', results);
 }
 
 // ------------------------------------------------------------------- phpstan
