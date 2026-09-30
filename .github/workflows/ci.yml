@@ -63,6 +63,7 @@ jobs:
             -v "$PWD/test/event.json:/github/event.json:ro" \
             -v "$PWD/test/out:/artifacts" \
             -e GITHUB_WORKSPACE=/github/workspace \
+            -e HOME=/github/home \
             -e GITHUB_REPOSITORY=octo-demo/fixture-repo \
             -e GITHUB_EVENT_NAME=pull_request \
             -e GITHUB_EVENT_PATH=/github/event.json \
@@ -84,6 +85,12 @@ jobs:
 
       - name: SARIF conforms to the 2.1.0 schema
         run: node test/validate-sarif.js test/out/results.sarif
+
+      - name: Alias and Terraform module checks
+        run: node test/image-checks.js
+
+      - name: Tampered pins fail the build
+        run: node test/tamper-check.js
 
       - name: Upload artifacts on failure
         if: failure()

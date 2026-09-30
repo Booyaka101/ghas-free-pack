@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"sg","Source":"registry.terraform.io/example/sg/aws","Version":"1.0.0","Dir":".terraform/modules/sg"},{"Key":"net","Source":"./modules/net","Dir":"modules/net"},{"Key":"net.sg","Source":"registry.terraform.io/example/sg/aws","Version":"1.0.0","Dir":".terraform/modules/net.sg"}]}

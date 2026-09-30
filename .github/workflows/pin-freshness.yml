@@ -1,0 +1,46 @@
+name: Pin freshness
+
+# Dependabot bumps the base image but can't see the scanner ARG pins in the
+# Dockerfile. This fails when upstream has a newer release than the one pinned,
+# so a new Trivy or trivy-checks shows up as a red run instead of going unnoticed.
+# Bumping a pin is still a manual job: fetch the new checksum from the release's
+# signed checksums, update the ARG, re-record test/fixtures/trivy.json if it moves.
+on:
+  schedule:
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare pins with the latest upstream releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pin() { sed -n "s/^ARG $1=//p" Dockerfile; }
+          latest() { gh release view -R "$1" --json tagName -q .tagName | sed 's/^v//'; }
+          stale=0
+          compare() {
+              if [ "$2" = "$3" ]; then
+                  echo "$1 $2 is current"
+              else
+                  echo "::error::$1 is pinned at $2, latest release is $3"
+                  stale=1
+              fi
+          }
+          compare Trivy "$(pin TRIVY_VERSION)" "$(latest aquasecurity/trivy)"
+          compare Hadolint "$(pin HADOLINT_VERSION)" "$(latest hadolint/hadolint)"
+          compare PHPStan "$(pin PHPSTAN_VERSION)" "$(latest phpstan/phpstan)"
+          # The checks bundle is pinned by digest, so compare it with the digest
+          # of the latest release's tag.
+          checks="$(latest aquasecurity/trivy-checks)"
+          compare "trivy-checks (digest of $checks)" "$(pin TRIVY_CHECKS_DIGEST)" \
+              "$(docker buildx imagetools inspect "mirror.gcr.io/aquasec/trivy-checks:$checks" --format '{{.Manifest.Digest}}')"
+          exit "$stale"

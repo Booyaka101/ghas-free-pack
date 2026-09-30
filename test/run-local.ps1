@@ -22,6 +22,7 @@ try {
         -v "$PSScriptRoot\event.json:/github/event.json:ro" `
         -v "$PSScriptRoot\out:/artifacts" `
         -e GITHUB_WORKSPACE=/github/workspace `
+        -e HOME=/github/home `
         -e GITHUB_REPOSITORY=octo-demo/fixture-repo `
         -e GITHUB_EVENT_NAME=pull_request `
         -e GITHUB_EVENT_PATH=/github/event.json `
@@ -40,5 +41,16 @@ finally {
     Stop-Process -Id $mock.Id -Force -ErrorAction SilentlyContinue
 }
 
+$failed = @()
 node "$PSScriptRoot\assert.js" $actionExit
-exit $LASTEXITCODE
+if ($LASTEXITCODE -ne 0) { $failed += 'assert.js' }
+node "$PSScriptRoot\validate-sarif.js" "$PSScriptRoot\out\results.sarif"
+if ($LASTEXITCODE -ne 0) { $failed += 'validate-sarif.js' }
+node "$PSScriptRoot\image-checks.js"
+if ($LASTEXITCODE -ne 0) { $failed += 'image-checks.js' }
+node "$PSScriptRoot\tamper-check.js"
+if ($LASTEXITCODE -ne 0) { $failed += 'tamper-check.js' }
+
+if ($failed.Count) { Write-Host "FAILED: $($failed -join ', ')"; exit 1 }
+Write-Host "== all suites passed =="
+exit 0

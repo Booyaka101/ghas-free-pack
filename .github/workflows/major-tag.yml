@@ -37,6 +37,16 @@ jobs:
             exit 0
           fi
           MAJOR="${TAG%%.*}"
+          # action.yml pulls :$MAJOR, which publish-image only moves after a good
+          # build. Moving the git tag first would pair the new action.yml with the
+          # old image, so wait for this release's image to exist.
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ghas-free-pack:$TAG"
+          for _ in $(seq 60); do
+            docker buildx imagetools inspect "$image" >/dev/null 2>&1 && break
+            sleep 30
+          done
+          docker buildx imagetools inspect "$image" >/dev/null \
+            || { echo "::error::$image was not published, leaving $MAJOR alone"; exit 1; }
           git tag -f "$MAJOR" "$TAG^{commit}"
           git push --force origin "refs/tags/$MAJOR"
           echo "\`$MAJOR\` now points at \`$TAG\` ($(git rev-parse --short "$TAG^{commit}"))" >> "$GITHUB_STEP_SUMMARY"

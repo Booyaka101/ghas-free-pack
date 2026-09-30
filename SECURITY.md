@@ -17,7 +17,7 @@ Please include what you found, how to reproduce it, and what an attacker gets ou
 Runs open-source scanners over Shell, Dockerfile, HCL and PHP inside your own workflow. Results stay in your repo's Security tab.
 
 - **It runs inside your workflow, on your runner.** Findings are uploaded as SARIF to your own repository's Security tab and go nowhere else.
-- **It executes third-party scanners.** They are pinned; a compromised pinned scanner is in scope and worth reporting.
+- **It executes third-party scanners.** Trivy, Hadolint and PHPStan are pinned to a version and SHA-256 checked when the image is built. ShellCheck comes from Ubuntu's signed apt archive. A compromised pinned scanner is in scope and worth reporting.
 
 ## Scope
 

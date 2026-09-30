@@ -22,7 +22,7 @@ jobs:
         with:
           enable-shellcheck: 'true'
           enable-hadolint: 'true'
-          enable-tfsec: 'true'
+          enable-trivy: 'true'
           enable-phpstan: 'false'   # opt-in: PHP projects usually want a tuned phpstan.neon
           fail-on-warning: 'false'
           github-token: ${{ github.token }}
