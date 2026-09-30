@@ -1,26 +1,28 @@
 # 🛡️ ghas-free-pack
 
-**Free security scanning for Shell/Bash, Dockerfiles, Terraform HCL and PHP — the exact file types GitHub put behind paid Advanced Security.**
+**Free security scanning for Shell/Bash, Dockerfiles, Terraform HCL and PHP, the file types GitHub put behind paid Advanced Security.**
 
-On **July 14, 2026** GitHub [shipped AI security detections on pull requests](https://github.blog/changelog/2026-07-14-code-scanning-shows-ai-security-detections-on-pull-requests/) — but only *"for customers with GitHub Code Security (GitHub Advanced Security)"*. Per [GitHub's own announcement](https://github.blog/security/application-security/github-expands-application-security-coverage-with-ai-powered-detections/), the ecosystems newly covered are **Shell/Bash, Dockerfiles, Terraform configurations (HCL), and PHP** — none of which CodeQL's free tier analyzes.
+On **July 14, 2026** GitHub [shipped AI security detections on pull requests](https://github.blog/changelog/2026-07-14-code-scanning-shows-ai-security-detections-on-pull-requests/), but only *"for customers with GitHub Code Security (GitHub Advanced Security)"*. Per [GitHub's own announcement](https://github.blog/security/application-security/github-expands-application-security-coverage-with-ai-powered-detections/), the newly covered ecosystems are **Shell/Bash, Dockerfiles, Terraform configurations (HCL), and PHP**. CodeQL's free tier analyzes none of them.
 
-`ghas-free-pack` closes that gap with battle-tested open-source scanners, zero cost, zero accounts:
+`ghas-free-pack` covers the same file types with established open-source scanners. No cost, no accounts:
 
 | File type | Scanner | License |
 |-----------|---------|---------|
-| `*.sh`, `*.bash` | [ShellCheck](https://github.com/koalaman/shellcheck) (39k+ ⭐) | GPLv3 |
-| `Dockerfile*` | [Hadolint](https://github.com/hadolint/hadolint) (12k+ ⭐) | GPL-3.0 |
-| `*.tf` | [tfsec](https://github.com/aquasecurity/tfsec) | MIT |
+| `*.sh`, `*.bash` | [ShellCheck](https://github.com/koalaman/shellcheck) | GPL-3.0 |
+| `Dockerfile*` | [Hadolint](https://github.com/hadolint/hadolint) | GPL-3.0 |
+| `*.tf` | [Trivy](https://github.com/aquasecurity/trivy) (`trivy config`) | Apache-2.0 |
 | `*.php` | [PHPStan](https://github.com/phpstan/phpstan) | MIT |
 
-One Docker action, one unified [SARIF 2.1.0](https://json.schemastore.org/sarif-2.1.0.json) report, one PR comment.
+One Docker action, one [SARIF 2.1.0](https://json.schemastore.org/sarif-2.1.0.json) report, one PR comment.
+
+Upgrading from 1.0? tfsec was replaced by Trivy in 1.1.0. See [CHANGELOG.md](CHANGELOG.md). Existing workflows keep working.
 
 ## What you get on every pull request
 
-1. **A PR comment** with a Markdown summary table, grouped by tool, with 🔴/🟠/🔵 severity icons and links to each rule's documentation. Updated in place on new pushes — no comment spam.
-2. **A job step summary** with the same table (works on push events too).
-3. **A SARIF upload** to GitHub code scanning (`Security → Code scanning`) — works on public repos with `security-events: write`; on private repos without GHAS it degrades gracefully to the comment.
-4. **A meaningful exit code** — the check fails on error-level findings (and optionally on warnings), so branch protection can block vulnerable PRs.
+1. **A PR comment** with a summary table grouped by tool, 🔴/🟠/🔵 severity icons and links to each rule's documentation. It is edited in place on later pushes, so there is one comment per PR.
+2. **A job step summary** with the same table. This works on push events too.
+3. **A SARIF upload** to GitHub code scanning (`Security → Code scanning`). Public repos need `security-events: write`. Private repos without GHAS can't receive the upload, so they get the comment and the summary only.
+4. **A meaningful exit code.** The check fails on error-level findings (optionally on warnings too), so branch protection can block a vulnerable PR.
 
 ## Usage
 
@@ -53,22 +55,47 @@ jobs:
 |-------|---------|-------------|
 | `enable-shellcheck` | `true` | Scan `.sh` / `.bash` files with ShellCheck |
 | `enable-hadolint` | `true` | Scan `Dockerfile*` with Hadolint |
-| `enable-tfsec` | `true` | Scan `.tf` files with tfsec |
-| `enable-phpstan` | `false` | Scan `.php` files with PHPStan (opt-in: PHP projects usually want a tuned `phpstan.neon`; one in your repo root is respected) |
+| `enable-trivy` | `true` | Scan `.tf` files with Trivy |
+| `enable-tfsec` | | Deprecated alias for `enable-trivy`. Still honoured, with a warning in the log |
+| `enable-phpstan` | `false` | Scan `.php` files with PHPStan. Opt-in, because PHP projects usually want a tuned `phpstan.neon`; one in your repo root is respected |
 | `fail-on-warning` | `false` | Also fail the check on warning-level findings |
-| `phpstan-level` | `5` | PHPStan strictness 0–9 when no `phpstan.neon` exists |
-| `github-token` | `${{ github.token }}` | Token for the PR comment + SARIF upload |
+| `phpstan-level` | `5` | PHPStan strictness 0-9 when no `phpstan.neon` exists |
+| `github-token` | `${{ github.token }}` | Token for the PR comment and SARIF upload |
 
-`node_modules`, `vendor`, `.terraform` and `.git` are always skipped.
+`node_modules`, `vendor`, `.terraform` and `.git` are skipped when looking for files. Trivy still follows your `module` blocks into `.terraform/modules` if you ran `terraform init` earlier in the job, and a finding inside a downloaded module is reported on the `module` call in your own code, with the module file and line in the message.
+
+## Pinned scanners
+
+Every scanner binary in the image is pinned to a version and its SHA-256 is checked at image build. A mismatch fails the build.
+
+| Scanner | Version | Source |
+|---------|---------|--------|
+| Trivy | 0.74.0 | GitHub release tarball, digest from the Sigstore-signed `checksums.txt` |
+| Trivy checks | 2.2.0 | `mirror.gcr.io/aquasec/trivy-checks`, pinned by OCI digest and baked into the image |
+| Hadolint | 2.15.1 | GitHub release binary, digest from the release's `checksums.sha256` |
+| PHPStan | 2.2.16 | GitHub release `phpstan.phar`, GPG signature checked when the pin was set |
+| ShellCheck | 0.11.0 | Ubuntu 26.04 apt archive (signed by Ubuntu) |
+
+Nothing is downloaded when the action runs, so a scan works with no network access, and the rule set only changes when a new release of this action changes it. Trivy's checks being frozen per release is deliberate: a compromised or broken upstream update can't reach your pipeline between releases.
+
+A weekly workflow (`.github/workflows/pin-freshness.yml`) goes red when upstream has a newer release than a pin, since Dependabot can't see these.
+
+tfsec is gone because it has been folded into Trivy upstream and gets no new checks. The 1.0 image also installed whatever tfsec and Hadolint `latest` pointed at on build day.
 
 ## How it works
 
-A Docker container action (`ubuntu:22.04`) installs the four scanners at image build, then `entrypoint.sh`:
+A Docker container action (`ubuntu:26.04`) with the scanners installed at image build. `entrypoint.sh`:
 
-1. finds the relevant files and runs each enabled scanner with JSON output (`/tmp/sc.json`, `/tmp/hd.json`, `/tmp/tf.json`, `/tmp/php.json`);
-2. `src/sarif.js` merges everything into one **SARIF 2.1.0** file (one run per tool, rule metadata with `helpUri` links, severities mapped to `error`/`warning`/`note`);
-3. `src/comment.js` renders the Markdown summary, posts/updates the PR comment, writes the step summary, and attempts the code-scanning SARIF upload;
-4. the exit code is computed from aggregate counts (`errors > 0` → fail; `fail-on-warning: 'true'` extends that to warnings).
+1. finds the relevant files and runs each enabled scanner with JSON output (`/tmp/sc.json`, `/tmp/hd.json`, `/tmp/tv.json`, `/tmp/php.json`);
+2. `src/sarif.js` merges them into one SARIF 2.1.0 file, one run per tool, with `helpUri` rule links and severities mapped to `error`/`warning`/`note` (Trivy CRITICAL and HIGH are errors, MEDIUM is a warning, LOW is a note);
+3. `src/comment.js` renders the summary, posts or updates the PR comment, writes the step summary and uploads the SARIF to code scanning;
+4. the exit code comes from the totals: any error fails the step, and `fail-on-warning: 'true'` extends that to warnings.
+
+## Limitations
+
+- The image is x86_64 only. It won't run on arm64 runners.
+- Trivy only scans Terraform here. Hadolint already covers Dockerfiles, and Kubernetes, CloudFormation and Helm are not wired up.
+- PHPStan finds type and logic errors. It is not a PHP security taint analyzer.
 
 ## Local verification (no GitHub needed)
 
@@ -80,8 +107,15 @@ npm install          # ajv, for SARIF schema validation
 .\run-local.ps1
 ```
 
-This builds the image, runs it against `test/fixtures/` (deliberately vulnerable Shell/Dockerfile/Terraform/PHP files) with a **mocked GitHub API** (`test/mock-github.js`), then `test/assert.js` verifies the acceptance criteria: hadolint `DL3002`, shellcheck `SC2163`, a tfsec HIGH/CRITICAL open-ingress finding, SARIF that validates against the official 2.1.0 JSON schema, and a posted PR comment containing the summary table. Artifacts land in `test/out/`.
+This builds the image and runs it against `test/fixtures/` (deliberately vulnerable Shell, Dockerfile, Terraform and PHP files) with a mocked GitHub API (`test/mock-github.js`). Then:
+
+- `assert.js` checks the acceptance criteria: Hadolint `DL3002`, ShellCheck `SC2163`, the open SSH ingress flagged by Trivy as `AWS-0107` at HIGH and reported as an error, Trivy's findings matching the recording in `test/fixtures/trivy.json`, and a posted PR comment with the summary table;
+- `validate-sarif.js` validates the SARIF against the official 2.1.0 JSON schema;
+- `image-checks.js` runs the image offline with `HOME=/github/home` as GitHub does, and checks the `enable-tfsec` alias and the module-call reporting (`test/module-fixture/`);
+- `tamper-check.js` rebuilds the image with each pinned digest replaced by zeros and expects every build to fail.
+
+Artifacts land in `test/out/`. CI runs the same steps on every pull request.
 
 ## License
 
-MIT for this action's own code (see `LICENSE`). The scanners are installed at image build from their official channels and keep their own licenses.
+MIT for this action's own code (see `LICENSE`). The scanners keep their own licenses.

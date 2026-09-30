@@ -23,6 +23,6 @@ SOFTWARE.
 ---
 
 Note: the Docker image installs ShellCheck (GPLv3), Hadolint (GPL-3.0),
-tfsec (MIT) and PHPStan (MIT) at build time from their official distribution
-channels. They are separate works invoked as command-line tools; their
+Trivy (Apache-2.0) and PHPStan (MIT) at build time from their official
+distribution channels. They are separate works invoked as command-line tools; their
 licenses apply to those tools respectively.
