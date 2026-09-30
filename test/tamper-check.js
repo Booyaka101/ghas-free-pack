@@ -25,7 +25,10 @@ CASES.forEach(function ([arg, value, expected]) {
   const ok = r.status !== 0 && log.indexOf(expected) !== -1;
   console.log((ok ? '  PASS' : '  FAIL') + ' - ' + arg + ' tampered: build exit ' + r.status +
     (log.indexOf(expected) !== -1 ? ', "' + expected + '"' : ', expected message missing'));
-  if (!ok) failures.push(arg);
+  if (!ok) {
+    failures.push(arg);
+    console.log(log.trim().split('\n').slice(-20).map(l => '      ' + l).join('\n'));
+  }
 });
 
 console.log('');
