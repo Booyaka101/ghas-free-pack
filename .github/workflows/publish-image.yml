@@ -36,11 +36,14 @@ jobs:
         id: tags
         run: |
           # A tag push gives the exact version; a manual run publishes :edge only.
+          # Only a final vX.Y.Z moves :vX and :latest, which @v1 consumers pull.
           ref="${GITHUB_REF#refs/tags/}"
           image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ghas-free-pack"
-          if [ "${GITHUB_REF}" != "${ref}" ]; then
+          if [[ "${ref}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             major="${ref%%.*}"                       # v1.0.0 -> v1
             echo "tags=${image}:${ref},${image}:${major},${image}:latest" >> "$GITHUB_OUTPUT"
+          elif [ "${GITHUB_REF}" != "${ref}" ]; then
+            echo "tags=${image}:${ref}" >> "$GITHUB_OUTPUT"
           else
             echo "tags=${image}:edge" >> "$GITHUB_OUTPUT"
           fi

@@ -1,4 +1,4 @@
-// sarif.js — merge raw scanner output (/tmp/sc.json, /tmp/hd.json, /tmp/tv.json,
+// sarif.js: merge raw scanner output (/tmp/sc.json, /tmp/hd.json, /tmp/tv.json,
 // /tmp/php.json) into a single SARIF 2.1.0 file at /tmp/results.sarif, plus
 // /tmp/counts.json used by entrypoint.sh for the exit code.
 // Runs on the image's apt nodejs (Node 22 on Ubuntu 26.04).
@@ -6,6 +6,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { addFingerprints } = require('./fingerprints');
 
 const WORKSPACE = process.env.GITHUB_WORKSPACE || process.cwd();
 
@@ -127,16 +128,20 @@ if (tv && Array.isArray(tv.Results)) {
   const results = [];
   tv.Results.forEach(function (target) {
     // A finding inside a downloaded module has a synthetic Target
-    // (<source>/.terraform/modules/...) that is not a repo file. Its last
-    // occurrence is the module call in the repo's own code, so report it there.
+    // (<source>/.terraform/modules/...) that is not a repo file. Report it on the
+    // innermost module call that is in the repo, the line that pins the module.
     const inRepo = fs.existsSync(path.join(WORKSPACE, target.Target));
     (target.Misconfigurations || []).forEach(function (m) {
       if (m.Status !== 'FAIL') return;
       const cause = m.CauseMetadata || {};
-      const call = inRepo ? null : (cause.Occurrences || []).slice(-1)[0];
-      const msg = (m.Message || m.Title || m.ID) + ' [' + m.Severity + ']' +
-        (m.Resolution ? ' Resolution: ' + m.Resolution : '') +
-        (call ? ' (in ' + target.Target + ' line ' + cause.StartLine + ')' : '');
+      const occurrences = inRepo ? [] : cause.Occurrences || [];
+      const call = occurrences.find(function (o) {
+        return o.Filename && fs.existsSync(path.join(WORKSPACE, o.Filename));
+      }) || occurrences.slice(-1)[0];
+      const msg = (m.Message || m.Title || m.ID) +
+        (m.Severity ? ' [' + m.Severity + ']' : '') +
+        (call ? ' (in ' + target.Target + (cause.StartLine ? ' line ' + cause.StartLine : '') + ')' : '') +
+        (m.Resolution ? ' Resolution: ' + m.Resolution : '');
       if (m.PrimaryURL) helpUris[m.ID] = m.PrimaryURL;
       const uri = call ? call.Filename : target.Target;
       const line = call ? (call.Location || {}).StartLine : cause.StartLine;
@@ -170,6 +175,8 @@ if (php && php.files) {
   }));
   tally('PHPStan', results);
 }
+
+addFingerprints(runs, WORKSPACE);
 
 const sarif = {
   $schema: 'https://json.schemastore.org/sarif-2.1.0.json',

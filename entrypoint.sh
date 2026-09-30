@@ -71,7 +71,8 @@ fi
 
 # --------------------------------------------------------------------- trivy
 # Terraform only: hadolint already covers Dockerfiles. The checks bundle is baked
-# into the image (TRIVY_CACHE_DIR), so nothing is fetched at run time.
+# into the image (TRIVY_CACHE_DIR) and never updated at run time. Remote module
+# sources missing from .terraform/modules are still downloaded, as tfsec did.
 # .terraform is not skipped: Trivy reads downloaded modules from it.
 if [ "$ENABLE_TRIVY" = "true" ]; then
     mapfile -d '' TF_FILES < <(find . \( "${PRUNE[@]}" \) -prune -o -type f -name '*.tf' -print0)

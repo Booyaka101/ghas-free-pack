@@ -67,10 +67,14 @@ let moduleResults = [];
 try {
   moduleResults = JSON.parse(fs.readFileSync(path.join(moduleOut, 'results.sarif'), 'utf8')).runs[0].results;
 } catch (e) { /* checked below */ }
-const ingress = moduleResults.find(r => r.ruleId === 'AWS-0107');
-const loc = ingress && ingress.locations[0].physicalLocation;
-check('downloaded-module finding is reported at the module call (main.tf:4)',
-  !!loc && loc.artifactLocation.uri === 'main.tf' && loc.region.startLine === 4);
+const ingressAt = dir => {
+  const r = moduleResults.find(r => r.ruleId === 'AWS-0107' && r.message.text.indexOf('/modules/' + dir + '/') !== -1);
+  const loc = r && r.locations[0].physicalLocation;
+  return loc ? loc.artifactLocation.uri + ':' + loc.region.startLine : 'missing';
+};
+check('downloaded-module finding is reported at the module call (main.tf:4)', ingressAt('sg') === 'main.tf:4');
+check('nested module finding is reported at the innermost call in the repo (modules/net/main.tf:1)',
+  ingressAt('net.sg') === 'modules/net/main.tf:1', ingressAt('net.sg'));
 check('vendor/ is not scanned by Trivy',
   moduleResults.length > 0 && !moduleResults.some(r => r.locations[0].physicalLocation.artifactLocation.uri.indexOf('vendor/') === 0));
 

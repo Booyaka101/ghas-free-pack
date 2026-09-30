@@ -5,3 +5,9 @@ module "sg" {
   source  = "example/sg/aws"
   version = "1.0.0"
 }
+
+# A local module that calls the same registry module. Its finding belongs on
+# the call inside modules/net, not on this line.
+module "net" {
+  source = "./modules/net"
+}

@@ -2,20 +2,22 @@
 
 ## 1.1.0
 
-tfsec is replaced by Trivy, and every scanner in the image is now pinned and checksum-verified.
+tfsec is replaced by Trivy, and Trivy, Hadolint and PHPStan are now pinned and checksum-verified.
 
 ### Changed
 
 - Terraform is scanned by `trivy config` (Trivy 0.74.0) instead of tfsec. tfsec has been merged into Trivy upstream and gets no new checks.
 - New input `enable-trivy` (default `true`). `enable-tfsec` still works as an alias and prints a deprecation warning. Setting either one to `'false'` turns Trivy off.
 - Trivy, Hadolint 2.15.1 and PHPStan 2.2.16 are downloaded at a fixed version and checked against a committed SHA-256 during the image build. Before this, tfsec and Hadolint came from `latest` and PHPStan from an unpinned Composer install.
-- The Trivy checks bundle (trivy-checks 2.2.0) is pinned by digest and baked into the image. Scans make no network calls, and results only change when this action is released.
-- The base image is `ubuntu:26.04` (Node 22, PHP 8.5). Composer, git and unzip are no longer in the image.
+- The Trivy checks bundle (trivy-checks 2.2.0) is pinned by digest and baked into the image, so the rule set only changes when this action is released.
+- The base image is `ubuntu:26.04` (Node 22, PHP 8.5). Composer and unzip are no longer in the image.
 
 ### Fixed
 
-- A finding inside a downloaded Terraform module (`.terraform/modules/...`) is reported on the `module` block in your code. The module file and line are in the message.
-- Trivy skips `node_modules` and `vendor`, matching the other scanners.
+- A finding inside a downloaded Terraform module (`.terraform/modules/...`) is reported on the innermost `module` block in your code. The module file and line are in the message.
+- The Terraform scan skips `node_modules` and `vendor` like the other scanners. tfsec scanned them.
+- SARIF results carry `primaryLocationLineHash` fingerprints. The action uploads through the REST API, which doesn't add them, so an alert could reappear as a new one after unrelated lines above it moved.
+- A prerelease tag no longer moves the `:v1` and `:latest` images, and the `v1` git tag only moves once the release's image is published.
 
 ### Upgrading
 

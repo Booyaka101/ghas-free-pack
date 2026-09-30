@@ -1,4 +1,4 @@
-// comment.js — turn /tmp/results.sarif into a Markdown summary, write it to the
+// comment.js: turn /tmp/results.sarif into a Markdown summary, write it to the
 // job step summary, post/update a PR comment, and best-effort upload the SARIF
 // to GitHub code scanning (works on public repos; private repos need GHAS).
 // Runs on the image's apt nodejs (Node 22 on Ubuntu 26.04).
@@ -170,7 +170,7 @@ async function uploadSarif(sarifRaw, event) {
   if (res.status === 202) {
     console.log('comment.js: SARIF uploaded to code scanning (visible under Security > Code scanning)');
   } else if (res.status === 403) {
-    console.log('comment.js: SARIF upload not permitted (HTTP 403) — code scanning upload needs a public repo ' +
+    console.log('comment.js: SARIF upload not permitted (HTTP 403). Code scanning upload needs a public repo ' +
       'or GHAS, and the workflow needs `security-events: write` permission. The PR comment above still has all findings.');
   } else {
     console.log('comment.js: SARIF upload skipped (HTTP ' + res.status + '): ' + String(res.raw).slice(0, 200));
@@ -197,7 +197,7 @@ async function main() {
   }
 
   if (!TOKEN || !REPO) {
-    console.log('comment.js: no GITHUB_TOKEN/GITHUB_REPOSITORY — skipping PR comment and SARIF upload');
+    console.log('comment.js: no GITHUB_TOKEN/GITHUB_REPOSITORY, skipping PR comment and SARIF upload');
     return;
   }
 

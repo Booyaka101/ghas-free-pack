@@ -89,7 +89,6 @@ jobs:
       - name: Alias and Terraform module checks
         run: node test/image-checks.js
 
-      # Prove a pin mismatch stops the build rather than trusting that it would.
       - name: Tampered pins fail the build
         run: node test/tamper-check.js
 

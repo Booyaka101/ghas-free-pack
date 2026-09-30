@@ -61,6 +61,21 @@ if (sarif) {
   const sarifIngress = trivyRun && trivyRun.results.find(r => r.ruleId === 'AWS-0107');
   check('AWS-0107 is an error-level SARIF result', !!sarifIngress && sarifIngress.level === 'error',
     sarifIngress ? sarifIngress.level : 'missing');
+  const ingressLoc = sarifIngress && sarifIngress.locations[0].physicalLocation;
+  check('in-repo Trivy finding keeps its own location (terraform/insecure.tf:12)',
+    !!ingressLoc && ingressLoc.artifactLocation.uri === 'terraform/insecure.tf' && ingressLoc.region.startLine === 12 &&
+    sarifIngress.message.text.indexOf('(in ') === -1,
+    ingressLoc ? ingressLoc.artifactLocation.uri + ':' + ingressLoc.region.startLine : 'missing');
+
+  // Recorded from codeql-action's own fingerprints.ts hash() on
+  // fixtures/terraform/insecure.tf line 12. A mismatch means our port drifted.
+  const lineHash = r => r && r.partialFingerprints && r.partialFingerprints.primaryLocationLineHash;
+  check('AWS-0107 fingerprint matches codeql-action', lineHash(sarifIngress) === 'cf7a5dc46f9bab14:1',
+    lineHash(sarifIngress) || 'missing');
+  const inFiles = sarif.runs.flatMap(r => r.results).filter(r =>
+    fs.existsSync(path.join(__dirname, 'fixtures', r.locations[0].physicalLocation.artifactLocation.uri)));
+  check('every result in a real file has a primaryLocationLineHash', inFiles.length > 0 && inFiles.every(lineHash),
+    inFiles.filter(lineHash).length + '/' + inFiles.length);
 
   const schema = JSON.parse(fs.readFileSync(path.join(__dirname, 'sarif-schema-2.1.0.json'), 'utf8'));
   const ajv = new Ajv({ strict: false, allErrors: true, validateFormats: false });

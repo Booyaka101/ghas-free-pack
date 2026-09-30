@@ -15,7 +15,7 @@ On **July 14, 2026** GitHub [shipped AI security detections on pull requests](ht
 
 One Docker action, one [SARIF 2.1.0](https://json.schemastore.org/sarif-2.1.0.json) report, one PR comment.
 
-Upgrading from 1.0? tfsec was replaced by Trivy in 1.1.0. See [CHANGELOG.md](CHANGELOG.md). Existing workflows keep working.
+tfsec was replaced by Trivy in 1.1.0. Existing workflows keep working, see [CHANGELOG.md](CHANGELOG.md).
 
 ## What you get on every pull request
 
@@ -56,17 +56,17 @@ jobs:
 | `enable-shellcheck` | `true` | Scan `.sh` / `.bash` files with ShellCheck |
 | `enable-hadolint` | `true` | Scan `Dockerfile*` with Hadolint |
 | `enable-trivy` | `true` | Scan `.tf` files with Trivy |
-| `enable-tfsec` | | Deprecated alias for `enable-trivy`. Still honoured, with a warning in the log |
+| `enable-tfsec` | | Deprecated alias for `enable-trivy`. Still honored, with a warning in the log |
 | `enable-phpstan` | `false` | Scan `.php` files with PHPStan. Opt-in, because PHP projects usually want a tuned `phpstan.neon`; one in your repo root is respected |
 | `fail-on-warning` | `false` | Also fail the check on warning-level findings |
 | `phpstan-level` | `5` | PHPStan strictness 0-9 when no `phpstan.neon` exists |
 | `github-token` | `${{ github.token }}` | Token for the PR comment and SARIF upload |
 
-`node_modules`, `vendor`, `.terraform` and `.git` are skipped when looking for files. Trivy still follows your `module` blocks into `.terraform/modules` if you ran `terraform init` earlier in the job, and a finding inside a downloaded module is reported on the `module` call in your own code, with the module file and line in the message.
+`node_modules`, `vendor`, `.terraform` and `.git` are skipped when looking for files. Trivy still follows your `module` blocks into `.terraform/modules` if you ran `terraform init` earlier in the job, and a finding inside a downloaded module is reported on the innermost `module` call in your own code, with the module file and line in the message. Remote modules that aren't in `.terraform/modules` are downloaded during the scan, as tfsec did.
 
 ## Pinned scanners
 
-Every scanner binary in the image is pinned to a version and its SHA-256 is checked at image build. A mismatch fails the build.
+Trivy, Hadolint and PHPStan are pinned to a version and checked against a committed SHA-256 at image build. A mismatch fails the build. ShellCheck comes from Ubuntu's signed apt archive.
 
 | Scanner | Version | Source |
 |---------|---------|--------|
@@ -74,20 +74,18 @@ Every scanner binary in the image is pinned to a version and its SHA-256 is chec
 | Trivy checks | 2.2.0 | `mirror.gcr.io/aquasec/trivy-checks`, pinned by OCI digest and baked into the image |
 | Hadolint | 2.15.1 | GitHub release binary, digest from the release's `checksums.sha256` |
 | PHPStan | 2.2.16 | GitHub release `phpstan.phar`, GPG signature checked when the pin was set |
-| ShellCheck | 0.11.0 | Ubuntu 26.04 apt archive (signed by Ubuntu) |
+| ShellCheck | 0.11.0 | Ubuntu 26.04 apt archive (signed by Ubuntu), not pinned |
 
-Nothing is downloaded when the action runs, so a scan works with no network access, and the rule set only changes when a new release of this action changes it. Trivy's checks being frozen per release is deliberate: a compromised or broken upstream update can't reach your pipeline between releases.
+The scanners and Trivy's checks are baked into the image, so the rule set only changes when this action ships a release. An upstream checks update, good or bad, can't reach your pipeline between releases.
 
-A weekly workflow (`.github/workflows/pin-freshness.yml`) goes red when upstream has a newer release than a pin, since Dependabot can't see these.
-
-tfsec is gone because it has been folded into Trivy upstream and gets no new checks. The 1.0 image also installed whatever tfsec and Hadolint `latest` pointed at on build day.
+Dependabot can't bump Dockerfile ARGs, so a weekly workflow (`.github/workflows/pin-freshness.yml`) goes red when upstream has a newer release than a pin.
 
 ## How it works
 
-A Docker container action (`ubuntu:26.04`) with the scanners installed at image build. `entrypoint.sh`:
+The action is a Docker container (`ubuntu:26.04`) with the scanners installed at image build. At run time `entrypoint.sh`:
 
 1. finds the relevant files and runs each enabled scanner with JSON output (`/tmp/sc.json`, `/tmp/hd.json`, `/tmp/tv.json`, `/tmp/php.json`);
-2. `src/sarif.js` merges them into one SARIF 2.1.0 file, one run per tool, with `helpUri` rule links and severities mapped to `error`/`warning`/`note` (Trivy CRITICAL and HIGH are errors, MEDIUM is a warning, LOW is a note);
+2. `src/sarif.js` merges them into one SARIF 2.1.0 file, one run per tool, with `helpUri` rule links and severities mapped to `error`/`warning`/`note` (Trivy CRITICAL and HIGH are errors, MEDIUM is a warning, LOW is a note). Each result gets the same `primaryLocationLineHash` fingerprint `upload-sarif` would add, so alerts track their code across commits instead of duplicating;
 3. `src/comment.js` renders the summary, posts or updates the PR comment, writes the step summary and uploads the SARIF to code scanning;
 4. the exit code comes from the totals: any error fails the step, and `fail-on-warning: 'true'` extends that to warnings.
 
@@ -109,9 +107,9 @@ npm install          # ajv, for SARIF schema validation
 
 This builds the image and runs it against `test/fixtures/` (deliberately vulnerable Shell, Dockerfile, Terraform and PHP files) with a mocked GitHub API (`test/mock-github.js`). Then:
 
-- `assert.js` checks the acceptance criteria: Hadolint `DL3002`, ShellCheck `SC2163`, the open SSH ingress flagged by Trivy as `AWS-0107` at HIGH and reported as an error, Trivy's findings matching the recording in `test/fixtures/trivy.json`, and a posted PR comment with the summary table;
+- `assert.js` checks the acceptance criteria: Hadolint `DL3002`, ShellCheck `SC2163`, the open SSH ingress flagged by Trivy as `AWS-0107` at HIGH and reported as an error, Trivy's findings matching the recording in `test/fixtures/trivy.json`, fingerprints matching codeql-action's, and a posted PR comment with the summary table;
 - `validate-sarif.js` validates the SARIF against the official 2.1.0 JSON schema;
-- `image-checks.js` runs the image offline with `HOME=/github/home` as GitHub does, and checks the `enable-tfsec` alias and the module-call reporting (`test/module-fixture/`);
+- `image-checks.js` runs the image offline with `HOME=/github/home` as GitHub does, and checks the `enable-tfsec` alias, that the baked checks bundle is used, the module-call reporting (`test/module-fixture/`) and that `vendor/` is skipped;
 - `tamper-check.js` rebuilds the image with each pinned digest replaced by zeros and expects every build to fail.
 
 Artifacts land in `test/out/`. CI runs the same steps on every pull request.

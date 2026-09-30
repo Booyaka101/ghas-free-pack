@@ -1,11 +1,14 @@
 FROM ubuntu:26.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# shellcheck via apt; node for the SARIF/comment scripts; php for PHPStan
+# shellcheck via apt; node for the SARIF/comment scripts; php for PHPStan;
+# git for Trivy to fetch git:: Terraform module sources
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \
+        git \
         shellcheck \
         nodejs \
         php-cli \
@@ -53,8 +56,9 @@ RUN mkdir /tmp/empty \
     && trivy config --quiet --disable-telemetry --skip-version-check \
         --checks-bundle-repository "mirror.gcr.io/aquasec/trivy-checks@${TRIVY_CHECKS_DIGEST}" /tmp/empty \
     && rmdir /tmp/empty \
-    && grep -q "\"Digest\":\"${TRIVY_CHECKS_DIGEST}\"" "${TRIVY_CACHE_DIR}/policy/metadata.json" \
-    || { echo "trivy-checks bundle ${TRIVY_CHECKS_DIGEST} was not installed" >&2; exit 1; }
+    && if ! grep -q "\"Digest\":\"${TRIVY_CHECKS_DIGEST}\"" "${TRIVY_CACHE_DIR}/policy/metadata.json"; then \
+        echo "trivy-checks bundle ${TRIVY_CHECKS_DIGEST} was not installed" >&2; exit 1; \
+    fi
 
 COPY entrypoint.sh /action/entrypoint.sh
 COPY src/ /action/src/

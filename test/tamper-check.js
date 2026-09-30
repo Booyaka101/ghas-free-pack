@@ -11,7 +11,8 @@ const CASES = [
   ['HADOLINT_SHA256', ZEROS, 'computed checksum did NOT match'],
   ['PHPSTAN_SHA256', ZEROS, 'computed checksum did NOT match'],
   ['TRIVY_SHA256', ZEROS, 'computed checksum did NOT match'],
-  ['TRIVY_CHECKS_DIGEST', 'sha256:' + ZEROS, 'was not installed']
+  // The step header echoes the unexpanded command, so match the expanded digest.
+  ['TRIVY_CHECKS_DIGEST', 'sha256:' + ZEROS, 'trivy-checks bundle sha256:' + ZEROS + ' was not installed']
 ];
 const failures = [];
 
