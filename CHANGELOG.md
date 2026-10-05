@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Trivy is bumped from 0.74.0 to 0.75.0 (digest from the Sigstore-signed release checksums) and PHPStan from 2.2.16 to 2.2.17 (GPG signature of `phpstan.phar` verified against the PHPStan Bot key when the pin was set). Hadolint 2.15.1 and trivy-checks 2.2.0 are unchanged.
+
 ## 1.1.0
 
 tfsec is replaced by Trivy, and Trivy, Hadolint and PHPStan are now pinned and checksum-verified.

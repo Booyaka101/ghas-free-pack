@@ -70,10 +70,10 @@ Trivy, Hadolint and PHPStan are pinned to a version and checked against a commit
 
 | Scanner | Version | Source |
 |---------|---------|--------|
-| Trivy | 0.74.0 | GitHub release tarball, digest from the Sigstore-signed `checksums.txt` |
+| Trivy | 0.75.0 | GitHub release tarball, digest from the Sigstore-signed `checksums.txt` |
 | Trivy checks | 2.2.0 | `mirror.gcr.io/aquasec/trivy-checks`, pinned by OCI digest and baked into the image |
 | Hadolint | 2.15.1 | GitHub release binary, digest from the release's `checksums.sha256` |
-| PHPStan | 2.2.16 | GitHub release `phpstan.phar`, GPG signature checked when the pin was set |
+| PHPStan | 2.2.17 | GitHub release `phpstan.phar`, GPG signature checked when the pin was set |
 | ShellCheck | 0.11.0 | Ubuntu 26.04 apt archive (signed by Ubuntu), not pinned |
 
 The scanners and Trivy's checks are baked into the image, so the rule set only changes when this action ships a release. An upstream checks update, good or bad, can't reach your pipeline between releases.
