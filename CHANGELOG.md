@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1
+
+### Changed
+
+- PHPStan is bumped from 2.2.17 to 2.3.1 (GPG signature of `phpstan.phar` verified against the PHPStan Bot key when the pin was set). Trivy 0.75.0, Hadolint 2.15.1 and trivy-checks 2.2.0 are unchanged.
+
 ## 1.2.0
 
 ### Changed
