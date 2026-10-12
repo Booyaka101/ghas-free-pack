@@ -30,8 +30,8 @@ RUN curl -fsSL -o /usr/local/bin/hadolint \
     && echo "${HADOLINT_SHA256}  /usr/local/bin/hadolint" | sha256sum -c - \
     && chmod +x /usr/local/bin/hadolint
 
-ARG PHPSTAN_VERSION=2.2.17
-ARG PHPSTAN_SHA256=46e0eb600188e5f6945b846e427614ad531ca575dac2659d307c3f2b7e1d6c3e
+ARG PHPSTAN_VERSION=2.3.1
+ARG PHPSTAN_SHA256=85157dba3d95d77ca603d2b7303aa78a538f9e3b56ccad07dd794c53aa96d1ae
 RUN curl -fsSL -o /usr/local/bin/phpstan \
         "https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar" \
     && echo "${PHPSTAN_SHA256}  /usr/local/bin/phpstan" | sha256sum -c - \
