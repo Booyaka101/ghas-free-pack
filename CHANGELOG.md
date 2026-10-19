@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Trivy is bumped from 0.75.0 to 0.76.0, with its checksum verified against the Sigstore-signed release checksums. The pinned trivy-checks bundle is bumped from 2.2.0 to 2.3.0. Hadolint and PHPStan are unchanged.
+
 ## 1.2.1
 
 ### Changed

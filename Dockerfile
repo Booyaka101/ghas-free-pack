@@ -37,8 +37,8 @@ RUN curl -fsSL -o /usr/local/bin/phpstan \
     && echo "${PHPSTAN_SHA256}  /usr/local/bin/phpstan" | sha256sum -c - \
     && chmod +x /usr/local/bin/phpstan
 
-ARG TRIVY_VERSION=0.75.0
-ARG TRIVY_SHA256=c6e65abddb348e25f10549df887045629cf28cc72453cd1c63acb717316b3f3f
+ARG TRIVY_VERSION=0.76.0
+ARG TRIVY_SHA256=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
 RUN curl -fsSL -o /tmp/trivy.tar.gz \
         "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
     && echo "${TRIVY_SHA256}  /tmp/trivy.tar.gz" | sha256sum -c - \
@@ -46,11 +46,11 @@ RUN curl -fsSL -o /tmp/trivy.tar.gz \
     && rm /tmp/trivy.tar.gz
 
 # Trivy's misconfiguration checks ship as a separate OCI bundle that it would
-# otherwise pull from the floating :2 tag on every run. Bake trivy-checks 2.2.0
+# otherwise pull from the floating :2 tag on every run. Bake trivy-checks 2.3.0
 # in by digest so scans are reproducible and need no network. A bad digest makes
 # Trivy fall back to its embedded checks with exit 0, hence the explicit check.
 # GitHub runs actions with HOME=/github/home, so the cache cannot live under ~.
-ARG TRIVY_CHECKS_DIGEST=sha256:b4a7e239039f2ed756c2e88f2d2f95f80658aed99545e637db3ce6133051fb87
+ARG TRIVY_CHECKS_DIGEST=sha256:2a540ca498daa278b14a77e8e5cd02594d16d131e5032afa65c279d0005826f2
 ENV TRIVY_CACHE_DIR=/opt/trivy-cache
 RUN mkdir /tmp/empty \
     && trivy config --quiet --disable-telemetry --skip-version-check \
