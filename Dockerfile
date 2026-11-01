@@ -30,15 +30,15 @@ RUN curl -fsSL -o /usr/local/bin/hadolint \
     && echo "${HADOLINT_SHA256}  /usr/local/bin/hadolint" | sha256sum -c - \
     && chmod +x /usr/local/bin/hadolint
 
-ARG PHPSTAN_VERSION=2.3.1
-ARG PHPSTAN_SHA256=85157dba3d95d77ca603d2b7303aa78a538f9e3b56ccad07dd794c53aa96d1ae
+ARG PHPSTAN_VERSION=2.3.2
+ARG PHPSTAN_SHA256=0ded687c44b1f9d0346f7f00fa505212b018efe532b2b18e3a72f6e16feb32be
 RUN curl -fsSL -o /usr/local/bin/phpstan \
         "https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar" \
     && echo "${PHPSTAN_SHA256}  /usr/local/bin/phpstan" | sha256sum -c - \
     && chmod +x /usr/local/bin/phpstan
 
-ARG TRIVY_VERSION=0.76.0
-ARG TRIVY_SHA256=e24b1c51293c1b15e4ba8d45bbc7891ba053f90278ec2698f3562c993e145fe7
+ARG TRIVY_VERSION=0.76.1
+ARG TRIVY_SHA256=c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
 RUN curl -fsSL -o /tmp/trivy.tar.gz \
         "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
     && echo "${TRIVY_SHA256}  /tmp/trivy.tar.gz" | sha256sum -c - \
