@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3
+
+### Changed
+
+- Refresh PHPStan to 2.3.4 and Trivy to 0.76.1, retaining checksum verification. The PHPStan release signature was verified when its pin was set.
+- Update the test harness's fast-uri dependency to 3.1.9.
+
 ## 1.2.2
 
 ### Changed
