@@ -91,7 +91,9 @@ The action is a Docker container (`ubuntu:26.04`) with the scanners installed at
 
 ## Limitations
 
-- The image is x86_64 only. It won't run on arm64 runners.
+- Linux AMD64 and ARM64 are supported. Docker selects the matching image from
+  the published multi-platform manifest. Other architectures and Windows/macOS
+  runners are not supported by this Docker action.
 - Trivy only scans Terraform here. Hadolint already covers Dockerfiles, and Kubernetes, CloudFormation and Helm are not wired up.
 - PHPStan finds type and logic errors. It is not a PHP security taint analyzer.
 
@@ -111,6 +113,27 @@ This builds the image and runs it against `test/fixtures/` (deliberately vulnera
 - `validate-sarif.js` validates the SARIF against the official 2.1.0 JSON schema;
 - `image-checks.js` runs the image offline with `HOME=/github/home` as GitHub does, and checks the `enable-tfsec` alias, that the baked checks bundle is used, the module-call reporting (`test/module-fixture/`) and that `vendor/` is skipped;
 - `tamper-check.js` rebuilds the image with each pinned digest replaced by zeros and expects every build to fail.
+- `platform-checks.js` checks the image architecture, Node runtime architecture,
+  and executes all four scanners offline. CI runs the full harness on native
+  AMD64 and ARM64 Linux runners, including architecture-specific tampered pins.
+
+For a local ARM64 cross-build on an AMD64 Docker Desktop host:
+
+```powershell
+docker build --platform linux/arm64 -t ghas-free-pack:arm64 .
+node test/platform-checks.js ghas-free-pack:arm64 arm64
+node test/image-checks.js ghas-free-pack:arm64
+node test/tamper-check.js arm64
+```
+
+Cross-building requires ARM64 emulation (included in Docker Desktop). Release
+publishing uses Buildx to push `linux/amd64` and `linux/arm64` together. Hadolint
+and Trivy have separate committed SHA-256 pins per architecture; PHPStan's PHAR
+and the pinned Trivy checks bundle are shared. No checksum is fetched at build time.
+After pushing, publishing verifies the immutable image digest contains exactly
+one Linux manifest per supported architecture, allowing Buildx attestations.
+Run `node --test test/manifest-checks.test.js` for the manifest validator's
+regression tests. This post-push check reports failures but cannot undo a push.
 
 Artifacts land in `test/out/`. CI runs the same steps on every pull request.
 

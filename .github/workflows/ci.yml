@@ -16,7 +16,15 @@ permissions:
 
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
 
@@ -37,10 +45,16 @@ jobs:
 
       - name: Install the harness deps (ajv, for SARIF schema validation)
         working-directory: test
-        run: npm ci || npm install
+        run: npm ci
+
+      - name: Manifest validation regression tests
+        run: node --test test/manifest-checks.test.js
 
       - name: Build the action image
         run: docker build -t ghas-free-pack:local .
+
+      - name: Verify image architecture and all scanner executables
+        run: node test/platform-checks.js ghas-free-pack:local "${{ matrix.arch }}"
 
       - name: Start the mock GitHub API
         run: |
@@ -90,12 +104,12 @@ jobs:
         run: node test/image-checks.js
 
       - name: Tampered pins fail the build
-        run: node test/tamper-check.js
+        run: node test/tamper-check.js "${{ matrix.arch }}"
 
       - name: Upload artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: ghas-free-pack-output
+          name: ghas-free-pack-output-${{ matrix.arch }}
           path: test/out/
           if-no-files-found: ignore

@@ -25,6 +25,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up ARM64 emulation for the cross-platform build
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: arm64
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v4
+
       - name: Log in to GHCR
         uses: docker/login-action@v4
         with:
@@ -49,11 +57,22 @@ jobs:
           fi
 
       - name: Build and push
+        id: build
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.tags.outputs.tags }}
           # Links the package to this repo so it inherits repo visibility and
           # shows the source on the GHCR page.
           labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Verify the published multi-platform index
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/ghas-free-pack"
+          docker buildx imagetools inspect "$image@$DIGEST" --raw > "$RUNNER_TEMP/manifest.json"
+          node test/manifest-checks.js "$RUNNER_TEMP/manifest.json"
