@@ -9,6 +9,8 @@
 - Native AMD64/ARM64 end-to-end CI, offline scanner executable checks, and
   architecture-specific tamper checks. Release publishing builds a multi-platform
   image without changing stable/prerelease tag promotion rules.
+- Verify the pushed image index by immutable digest, with regression tests for
+  missing, duplicate and unexpected platforms and Buildx attestations.
 
 ## 1.2.3
 

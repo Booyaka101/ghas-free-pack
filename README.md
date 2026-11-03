@@ -130,6 +130,10 @@ Cross-building requires ARM64 emulation (included in Docker Desktop). Release
 publishing uses Buildx to push `linux/amd64` and `linux/arm64` together. Hadolint
 and Trivy have separate committed SHA-256 pins per architecture; PHPStan's PHAR
 and the pinned Trivy checks bundle are shared. No checksum is fetched at build time.
+After pushing, publishing verifies the immutable image digest contains exactly
+one Linux manifest per supported architecture, allowing Buildx attestations.
+Run `node --test test/manifest-checks.test.js` for the manifest validator's
+regression tests. This post-push check reports failures but cannot undo a push.
 
 Artifacts land in `test/out/`. CI runs the same steps on every pull request.
 

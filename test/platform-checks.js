@@ -8,7 +8,8 @@ const path = require('path');
 const IMAGE = process.argv[2] || 'ghas-free-pack:local';
 const ARCH = process.argv[3] || (process.arch === 'arm64' ? 'arm64' : 'amd64');
 assert.ok(['amd64', 'arm64'].includes(ARCH), 'Expected amd64 or arm64');
-const docker = args => execFileSync('docker', args, { encoding: 'utf8' }).trim();
+const docker = args => execFileSync('docker', args, { encoding: 'utf8', timeout: 120000 }).trim();
+assert.strictEqual(docker(['image', 'inspect', '--format', '{{.Os}}', IMAGE]), 'linux');
 assert.strictEqual(docker(['image', 'inspect', '--format', '{{.Architecture}}', IMAGE]), ARCH);
 const run = command => docker(['run', '--rm', '--platform', 'linux/' + ARCH, '--network', 'none',
   '--entrypoint', '/bin/bash', IMAGE, '-euc', command]);

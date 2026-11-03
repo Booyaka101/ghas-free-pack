@@ -45,7 +45,10 @@ jobs:
 
       - name: Install the harness deps (ajv, for SARIF schema validation)
         working-directory: test
-        run: npm ci || npm install
+        run: npm ci
+
+      - name: Manifest validation regression tests
+        run: node --test test/manifest-checks.test.js
 
       - name: Build the action image
         run: docker build -t ghas-free-pack:local .
@@ -101,7 +104,7 @@ jobs:
         run: node test/image-checks.js
 
       - name: Tampered pins fail the build
-        run: node test/tamper-check.js
+        run: node test/tamper-check.js "${{ matrix.arch }}"
 
       - name: Upload artifacts on failure
         if: failure()
