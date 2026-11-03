@@ -24,10 +24,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # GPG-signed release (PHPStan Bot, CA7C2C7A30C8E8E1274A847651C67305FFC2E5C0).
 
 ARG HADOLINT_VERSION=2.15.1
+# Keep the existing SHA256 argument for AMD64 builds.
 ARG HADOLINT_SHA256=c7187db94eeeeca956519a6af171adc31453941a1e777961f6e680f697c8c507
-RUN curl -fsSL -o /usr/local/bin/hadolint \
-        "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-x86_64" \
-    && echo "${HADOLINT_SHA256}  /usr/local/bin/hadolint" | sha256sum -c - \
+ARG HADOLINT_ARM64_SHA256=f6198ef8090f404dbb771abfee086eb8c48ac177f30da7fd3510aca35b344b5d
+ARG TARGETARCH
+RUN case "${TARGETARCH}" in \
+        amd64) asset=x86_64; checksum="${HADOLINT_SHA256}" ;; \
+        arm64) asset=arm64; checksum="${HADOLINT_ARM64_SHA256}" ;; \
+        *) echo "Unsupported target architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL -o /usr/local/bin/hadolint \
+        "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-linux-${asset}" \
+    && echo "${checksum}  /usr/local/bin/hadolint" | sha256sum -c - \
     && chmod +x /usr/local/bin/hadolint
 
 ARG PHPSTAN_VERSION=2.3.4
@@ -39,9 +47,15 @@ RUN curl -fsSL -o /usr/local/bin/phpstan \
 
 ARG TRIVY_VERSION=0.76.1
 ARG TRIVY_SHA256=c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
-RUN curl -fsSL -o /tmp/trivy.tar.gz \
-        "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-    && echo "${TRIVY_SHA256}  /tmp/trivy.tar.gz" | sha256sum -c - \
+ARG TRIVY_ARM64_SHA256=e174dff2a6dba5e3ae41f8d0537a6324405bd08132497340304c6b20e0f16a1f
+RUN case "${TARGETARCH}" in \
+        amd64) asset=64bit; checksum="${TRIVY_SHA256}" ;; \
+        arm64) asset=ARM64; checksum="${TRIVY_ARM64_SHA256}" ;; \
+        *) echo "Unsupported target architecture: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL -o /tmp/trivy.tar.gz \
+        "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${asset}.tar.gz" \
+    && echo "${checksum}  /tmp/trivy.tar.gz" | sha256sum -c - \
     && tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy \
     && rm /tmp/trivy.tar.gz
 

@@ -42,6 +42,8 @@ finally {
 }
 
 $failed = @()
+node "$PSScriptRoot\platform-checks.js"
+if ($LASTEXITCODE -ne 0) { $failed += 'platform-checks.js' }
 node "$PSScriptRoot\assert.js" $actionExit
 if ($LASTEXITCODE -ne 0) { $failed += 'assert.js' }
 node "$PSScriptRoot\validate-sarif.js" "$PSScriptRoot\out\results.sarif"

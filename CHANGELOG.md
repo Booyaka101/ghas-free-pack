@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Linux ARM64 container support with separate committed Hadolint and Trivy
+  checksums; unsupported target architectures fail explicitly.
+- Native AMD64/ARM64 end-to-end CI, offline scanner executable checks, and
+  architecture-specific tamper checks. Release publishing builds a multi-platform
+  image without changing stable/prerelease tag promotion rules.
+
 ## 1.2.3
 
 ### Changed
