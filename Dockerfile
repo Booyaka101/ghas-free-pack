@@ -38,16 +38,16 @@ RUN case "${TARGETARCH}" in \
     && echo "${checksum}  /usr/local/bin/hadolint" | sha256sum -c - \
     && chmod +x /usr/local/bin/hadolint
 
-ARG PHPSTAN_VERSION=2.3.4
-ARG PHPSTAN_SHA256=a961d12cc71941a31ad6560e6a330347d487612628c3202a718f71a59de21a7c
+ARG PHPSTAN_VERSION=2.3.5
+ARG PHPSTAN_SHA256=4b3ed7850a20b092331bd1040e4f54a1d3c0559b4cf006431073997ebcb4324b
 RUN curl -fsSL -o /usr/local/bin/phpstan \
         "https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar" \
     && echo "${PHPSTAN_SHA256}  /usr/local/bin/phpstan" | sha256sum -c - \
     && chmod +x /usr/local/bin/phpstan
 
-ARG TRIVY_VERSION=0.76.1
-ARG TRIVY_SHA256=c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0
-ARG TRIVY_ARM64_SHA256=e174dff2a6dba5e3ae41f8d0537a6324405bd08132497340304c6b20e0f16a1f
+ARG TRIVY_VERSION=0.76.2
+ARG TRIVY_SHA256=bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf
+ARG TRIVY_ARM64_SHA256=ab9d51f86e6a5fb936f605faff6b593ac51bc378fff4d3e8b9d58358b9c367c3
 RUN case "${TARGETARCH}" in \
         amd64) asset=64bit; checksum="${TRIVY_SHA256}" ;; \
         arm64) asset=ARM64; checksum="${TRIVY_ARM64_SHA256}" ;; \
