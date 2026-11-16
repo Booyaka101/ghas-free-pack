@@ -38,8 +38,8 @@ RUN case "${TARGETARCH}" in \
     && echo "${checksum}  /usr/local/bin/hadolint" | sha256sum -c - \
     && chmod +x /usr/local/bin/hadolint
 
-ARG PHPSTAN_VERSION=2.3.5
-ARG PHPSTAN_SHA256=4b3ed7850a20b092331bd1040e4f54a1d3c0559b4cf006431073997ebcb4324b
+ARG PHPSTAN_VERSION=2.3.6
+ARG PHPSTAN_SHA256=bd5af896c8eb831e10873a4407c37ac33118dcd88de4ea77e13cd6e6702a41cc
 RUN curl -fsSL -o /usr/local/bin/phpstan \
         "https://github.com/phpstan/phpstan/releases/download/${PHPSTAN_VERSION}/phpstan.phar" \
     && echo "${PHPSTAN_SHA256}  /usr/local/bin/phpstan" | sha256sum -c - \
